@@ -1,0 +1,410 @@
+
+wfopen(page=UDEP)"/Users/davidricardogonzales/Desktop/INF/bonos.xlsx" range =hoja1!A1
+
+'Renta Fija
+String bonos= "ger"
+
+For %y {bonos}
+	series Yield10_3_{%y} = {%y}_10yr - {%y}_3m
+next
+
+'Metodolog.a B&J
+
+'Validaci.n de estacionariedad
+
+'1. An·lisis Gr·fico: la serie es no estacionaria
+
+graph Yield10_3.line(o="spartan")
+
+'2. Correlograma: Eliminar autocorrelaciones- AR(n)
+
+Yield10_3_ger.correl 
+
+'3. Pruebas de ra.z unitaria: Tiene ra.z unitaria. Por tanto, es no estacionaria
+'Augmented Dicky-Fuller
+
+Yield10_3_ger.uroot
+Yield10_3_ger.uroot(pp) 'Philips Perron
+
+Yield10_3_ger.uroot(dif=1, pp)
+Yield10_3_ger.uroot(dif=1)
+Yield10_3_ger.sheet 
+close Yield10_3_ger
+
+
+'4. Primeras diferencias
+series ddyield = d (Yield10_3_ger)
+graph gg_yield.line(o="spartan") ddyield 
+ddyield.correl
+ddyield.uroot
+ddyield.uroot(pp)
+
+
+smpl @all
+
+'Modelo ARIMA:
+
+'PredicciÛn 1 mes:
+
+smpl 2015m01 2022m05
+
+freeze yield10_3_ger.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=1, agraph, atable, etable, fgraph) yield10_3_ger_f1ms c 
+
+freeze yield10_3_ger.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=1, agraph, atable, etable, fgraph) yield10_3_ger_f1m c yield10_3_ger
+
+smpl @all
+
+'PredicciÛn 3 meses:
+
+smpl 2015m01 2022m03
+
+freeze yield10_3_ger.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=3, agraph, atable, etable, fgraph) yield10_3_ger_f3ms c 
+
+freeze yield10_3_ger.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=3, agraph, atable, etable, fgraph) yield10_3_ger_f3m c yield10_3_ger
+
+smpl @all
+
+'PredicciÛn 6 meses:
+
+smpl 2015m01 2021m12
+
+freeze yield10_3_ger.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=6, agraph, atable, etable, fgraph) yield10_3_ger_f3ms c 
+
+freeze yield10_3_ger.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=6, agraph, atable, etable, fgraph) yield10_3_ger_f3m c yield10_3_ger 
+smpl @all
+
+'Backtesting 1 mes 2021:
+
+vector(12) Testing_2021
+vector(12) Stesting_2021
+
+for !x=1 to 12 
+	
+	smpl 2015m01 2021m{!x}
+	yield10_3_ger.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=1, agraph, atable, etable, fgraph) yield10_3_ger_f0{!x}_21 c yield10_3_ger
+		
+next
+
+smpl @all
+
+'ExtracciÛn de los forecast:
+
+for !z = 1 to 12
+	testing_2021({!z}) = @last( yield10_3_ger_f0{!z}_21)
+next
+
+smpl @all
+
+testing_2021(12) = @last( yield10_3_ger_f012_21)
+
+
+for !y = 2  to 12 
+		smpl 2015m01 2021m{!y}
+		stesting_2021({!y}-1) = @last(yield10_3_ger) 
+next
+
+smpl @all
+
+smpl 2015m01 2022m1
+stesting_2021(12) = @last(yield10_3_ger)
+
+smpl @all
+
+'Resta de vectores:
+
+vector(12) R_testing = stesting_2021 - testing_2021
+
+
+
+
+'Metodologia de Momentum
+
+'Medias moviles
+
+'RENTA FIJA
+
+series GE_10 = ger_10YR 
+graph GE_10_graph.line(o="spartan") GE_10
+
+'MEDIAS PARA LOS DIFERENTES BONOS DE DIFERENTES PAISES
+
+string EUROPA= "ger_10YR es_10YR fa_10YR uk_10YR "
+
+For %y {EUROPA}
+	For %t 20 50 'Medias de corto
+		series {%y}_{%t} = @movav({%y},{%t})
+		smpl @all
+	next
+	For %r 100 200 'Medias de largo
+		series {%y}_{%r} = @movav({%y},{%r})
+		Smpl @all
+	next
+next
+
+'SeÒales relativas
+'Momentum: Corto > largo = 1
+'Corto < largo = 0
+
+For %y {EUROPA}
+	For %t 20 50 
+		For %z 100 200
+			series {%y}_relsignal{%t}{%z} = 0
+			smpl if {%y}_{%t}>{%y}_{%z} 
+			series {%y}_relsignal{%t}{%z} = 1
+			smpl @all
+		next
+	next
+next
+
+'grafico con medias moviles
+For %y {EUROPA}
+	For %t 20 50 
+		For %z 100  200
+			graph ag_{%y}_{%t}_{%z}_graph.line(o="Spartan") {%y} {%y}_{%t} {%y}_{%z}
+			ag_{%y}_{%t}_{%z}_graph.setupdate(a)
+			ag_{%y}_{%t}_{%z}_graph.addtext(t, font(b)){%y}_{%t}_{%z}
+			ag_{%y}_{%t}_{%z}_graph.axis mirror
+			ag_{%y}_{%t}_{%z}_graph.legend position(botcenter) columns(3)
+		next
+	next
+next
+
+
+'cuadro resumen comparativa con otros bonos
+
+
+table cuadro
+
+cuadro(2,1) = "Activos"
+cuadro(3,1) = "ger_10YR"
+cuadro(4,1) = "es_10YR"
+cuadro(5,1) = "fa_10YR"
+cuadro(6,1) = "uk_10YR"
+
+
+cuadro(2,2) = "Modelo"
+cuadro(2,3) = "Last Week"
+cuadro(2,4) = "MTD"
+cuadro(2,5) = "YTD"
+
+
+!x = 3
+For %y {EUROPA}
+	if @last({%y}_50) > @last({%y}_200) then
+		cuadro(!x,2) = "POS"
+		cuadro.settextcolor(!x,2) blue
+		cuadro.settextcolor(!x,1) blue
+		cuadro.setfont(!x,2) +b
+	else
+		cuadro(!x,2) = "NEG"
+		cuadro.settextcolor(!x,2) red
+		cuadro.settextcolor(!x,1) red
+	endif
+	!x = !x+1
+next
+
+' Retornos YTD
+
+smpl 12/31/2020 @last
+
+!x = 3
+For %t {EUROPA}
+	cuadro(!x,5) = (@last({%t})/@first({%t}))-1
+	if cuadro(!x,5) < 0 then
+		cuadro.settextcolor(!x,5) red
+	endif
+	!x = !x+1
+next 
+
+' Retornos MTD
+
+smpl 09/30/2021 @last
+
+!x = 3
+For %t {EUROPA}
+	cuadro(!x,4) = (@last({%t})/@first({%t}))-1
+	if cuadro(!x,4) < 0 then
+		cuadro.settextcolor(!x,4) red
+	endif
+	!x = !x+1
+next 
+
+' Retornos last week
+
+smpl @last-6 @last-1
+
+!x = 3
+For %t {EUROPA}
+	cuadro(!x,3) = (@last({%t})/@first({%t}))-1
+	if cuadro(!x,3) < 0 then
+		cuadro.settextcolor(!x,3) red
+	endif
+	!x = !x+1
+next
+
+wfclose
+
+
+
+
+' Ahora para monedas ******************************************************
+
+wfopen(page=UDEP)"/Users/davidricardogonzales/Desktop/INF/moneda.xlsx" range =hoja1!A1
+
+'Metodolog.a B&J
+
+'Validaci.n de estacionariedad
+
+'1. An·lisis Gr·fico: la serie es no estacionaria
+
+graph g_eurusd.line(o="spartan") eurusd 
+
+'2. Correlograma: Eliminar autocorrelaciones- AR(n)
+
+eurusd.correl 
+
+'3. Pruebas de ra.z unitaria: Tiene ra.z unitaria. Por tanto, es no estacionaria
+'Augmented Dicky-Fuller
+
+eurusd.uroot
+eurusd.uroot(pp) 'Philips Perron
+eurusd.uroot(dif=1, pp)
+eurusd.uroot(dif=1)
+eurusd.sheet 
+close eurusd
+
+
+'4. Primeras diferencias
+series ddeurusd = d (eurusd)
+graph gg_eurusd.line(o="spartan") ddeurusd
+ddeurusd.correl
+ddeurusd.uroot
+ddeurusd.uroot(pp)
+
+
+smpl @all
+
+'Modelo ARIMA:
+
+'PredicciÛn 1 mes:
+
+smpl 2000m01 2022m10
+
+freeze eurusd.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=1, agraph, atable, etable, fgraph) eurusd_f1ms c 
+
+freeze eurusd.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=1, agraph, atable, etable, fgraph) eurusd_f1m c eurusd
+
+smpl @all
+
+'PredicciÛn 3 meses:
+
+smpl 2000m01 2022m08
+
+freeze eurusd.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=3, agraph, atable, etable, fgraph) eurusd_f3ms c 
+
+freeze eurusd.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=3, agraph, atable, etable, fgraph) eurusd_f3m c eurusd
+
+smpl @all
+
+'PredicciÛn 6 meses:
+
+smpl 2000m01 2022m05
+
+freeze eurusd.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=6, agraph, atable, etable, fgraph) eurusd_f3ms c 
+
+freeze eurusd.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=6, agraph, atable, etable, fgraph) eurusd_f3m c eurusd 
+smpl @all
+
+'Backtesting 1 mes 2021:
+
+vector(12) Testing_2021
+vector(12) Stesting_2021
+
+for !x=1 to 12 
+	
+	smpl 2000m01 2021m{!x}
+	eurusd.autoarma(tform=none, diff=0, maxar=1, maxma=0, forclen=1, agraph, atable, etable, fgraph) eurusd_f0{!x}_21 c eurusd
+		
+next
+
+smpl @all
+
+'ExtracciÛn de los forecast:
+
+for !z = 1 to 12
+	testing_2021({!z}) = @last( eurusd_f0{!z}_21)
+next
+
+smpl @all
+
+testing_2021(12) = @last( eurusd_f012_21)
+
+
+for !y = 2  to 12 
+		smpl 2000m01 2021m{!y}
+		stesting_2021({!y}-1) = @last(eurusd) 
+next
+
+smpl @all
+
+smpl 2000m01 2022m1
+stesting_2021(12) = @last(eurusd)
+
+smpl @all
+
+'Resta de vectores:
+
+vector(12) R_testing = stesting_2021 - testing_2021
+
+
+
+
+'Metodologia de Momentum
+
+'Medias moviles
+
+'MEDIAS PARA LA MONEDA
+
+string MONEDA= "eurusd"
+
+For %y {MONEDA}
+	For %t 20 50 'Medias de corto
+		series {%y}_{%t} = @movav({%y},{%t})
+		smpl @all
+	next
+	For %r 100 200 'Medias de largo
+		series {%y}_{%r} = @movav({%y},{%r})
+		Smpl @all
+	next
+next
+
+'SeÒales relativas
+'Momentum: Corto > largo = 1
+'Corto < largo = 0
+
+For %y {MONEDA}
+	For %t 20 50 
+		For %z 100 200
+			series {%y}_relsignal{%t}{%z} = 0
+			smpl if {%y}_{%t}>{%y}_{%z} 
+			series {%y}_relsignal{%t}{%z} = 1
+			smpl @all
+		next
+	next
+next
+
+'grafico con medias moviles
+For %y {MONEDA}
+	For %t 20 50 
+		For %z 100  200
+			graph ag_{%y}_{%t}_{%z}_graph.line(o="Spartan") {%y} {%y}_{%t} {%y}_{%z}
+			ag_{%y}_{%t}_{%z}_graph.setupdate(a)
+			ag_{%y}_{%t}_{%z}_graph.addtext(t, font(b)){%y}_{%t}_{%z}
+			ag_{%y}_{%t}_{%z}_graph.axis mirror
+			ag_{%y}_{%t}_{%z}_graph.legend position(botcenter) columns(3)
+		next
+	next
+next
+
+
+wfclose
