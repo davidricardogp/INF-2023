@@ -1,0 +1,94 @@
+################################ PC1 GRUPO ALEMANIA###################################
+setwd("/Users/davidricardogonzales/Downloads")
+library(readxl)
+books <- read_excel("/Users/davidricardogonzales/Downloads/VIXFIX ALEMANIA.xlsx")
+View(books)
+
+# # # # Ejercicio 3 
+#Trabajamos con los retornos para poder realizar una comparación.
+install.packages("moments")
+library(moments)
+# Para Alemania: 
+Media_Ale <- mean(books$retorno_MXDE_px, na.rm = TRUE)
+Varianza_Ale <- var(books$retorno_MXDE_px, na.rm = TRUE)
+Kurtosis_Ale <- kurtosis(books$retorno_MXDE_px, na.rm = TRUE)
+Skewness_Ale <- skewness(books$retorno_MXDE_px, na.rm = TRUE)
+# Para SPX:
+Media_spx <- mean(books$retorno_SPX_px, na.rm = TRUE)
+Varianza_spx <- var(books$retorno_SPX_px, na.rm = TRUE)
+kurtosis_spx <- kurtosis(books$retorno_SPX_px, na.rm = TRUE)
+Skewness_spx <- skewness(books$retorno_SPX_px, na.rm = TRUE)
+
+# # # COMENTARIO: 
+# El retorno esperado del S&P es mayor que el retono esperado de Alemania,
+# si se toma en cuenta ello, seria conveniente invertir en el S&P, ya que se espera que rinda más.
+# Asimismo, como la varianza del retorno de Alemania es mayor que la del retorno del S&P,
+# se puede afirmar que el retorno del S&P es menos sensible a cambios, a través del tiempo,
+# o dicho de otro modo, el retorno de Alemania es más volátil a comparación del retorno del S&P.
+
+
+
+#La skewness indica la asimetría de las distribuciones. 
+#En este caso, Alemania y SPX presentan skewness negativas lo que indica que hay más
+#concentración de retornos a la derecha de la media; es decir, las distribuciones de retornos 
+#presentan una inclinación a la derecha. Por otro lado, la kurtosis indica la forma de la distribución. 
+#Si bien los la Kurtosis de Alemania y SPX son positivas, lo que indica que sus distribuciones 
+#tienen forma leptocúrtica (relativamente elevadas), Alemania dispone de una kurtosis menor en comparación
+#a la del SPX, por lo que su forma leptocúrtica es menor.
+
+# # # #  Ejercicio 4
+# gráfico y los márgenes
+par(mar = c(5, 4, 4, 6) + 0.1)  # Ajusta los márgenes
+plot(books$VIXFix_SPX, type = "l", col = "red", ylim = c(0, 75), xlab = "Días", ylab = "", las = 1, main = "Comparación entre el VixFix del SPX y el VIX")
+
+# Superponer el segundo gráfico 
+par(new = TRUE)
+plot(books$VIX, type = "l", col = "blue", ylim = c(0, 75), xlab = "", ylab = "", las = 1, axes = FALSE)
+
+# Configuración de la leyenda
+legend("topleft", c("VIX", "VIX FIX SPX"), lwd = c(1, 2), col = c("blue", "red"), bty = "n")
+
+# Etiqueta del eje y
+mtext("Valor", side = 2, line = 3)
+
+# Etiqueta del eje x
+mtext("Periodo", side = 1, line = 3)
+
+# # # #  Ejercicio 5
+cor.test(books$VIX, books$VIXFix_SPX)
+# Una correlación de 0.77 indica que hay una tendencia positiva moderadamemte alta entre el VixFix SPX y el VIX.
+# # Por lo tanto, cuando hay un aumento en el VIX, es probable que el VixFix del S&P también aumente.
+
+# # # #  Ejercicio 6
+
+mean_VFDE  <- mean(books$VIXFix_MXDE, na.rm = TRUE)
+
+desv_VFDE  <- sd(books$VIXFix_MXDE, na.rm = TRUE)
+
+
+obs  <- dim(books)
+obs  <- obs[1]
+
+DE_VIX  <- matrix(c(0), obs)
+
+freq  <- 1:obs 
+for (i in 1:length(freq)) {
+  DE_VIX  <- ((books$VIXFix_MXDE - mean_VFDE)/desv_VFDE)
+  
+}
+
+# # # #  Ejercicio 7
+par(mar = c(5, 4, 4, 6) + 0.1)  # Ajusta los márgenes
+
+# Configurar el dispositivo gráfico y dividir el área en 2 filas y 1 columna
+par(mfrow = c(2, 1))
+
+# Primer gráfico
+plot(books$MXDE_px, type = "l", col = "green", xlab = "Días", ylab = "", las = 1, main = "índice de Alemania")
+
+plot(books$VIXFix_MXDE, type = "l", col = "black", xlab = "Días", ylab = "", las = 1, main = "VIXFix tipificado de Alemania")
+
+# Restaurar la configuración por defecto del dispositivo gráfico
+par(mfrow = c(1, 1))
+
+
